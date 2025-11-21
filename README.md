@@ -80,7 +80,7 @@ After installing these dependencies, please run this command to install the code
 python setup.py develop
 ```
 
-We also provide a [Dockerfile](docker/Dockerfile) to ease environment setup. To get started with docker, please make sure that `nvidia-docker` is installed on your machine. After that, please execute the following command to build the docker image:
+We also provide a [Dockerfile](docker/Dockerfile) to ease environment setup. To get started with docker, please make sure that `docker` is installed on your machine. After that, please execute the following command to build the docker image:
 
 ```bash
 cd docker && docker build . -t bevfusion
@@ -89,7 +89,12 @@ cd docker && docker build . -t bevfusion
 We can then run the docker with the following command:
 
 ```bash
-nvidia-docker run -it -v `pwd`/../data:/dataset --shm-size 16g bevfusion /bin/bash
+docker run --gpus all -it -v /home/deekshasethi/repos/perception/bevfusion/data:/dataset --shm-size 16g --name bevfusion --hostname bevfusion bevfusion /bin/bash
+```
+
+To rerun the created container "bevfusion" and attach to it, use -
+```bash
+docker start -ai bevfusion
 ```
 
 We recommend the users to run data preparation (instructions are available in the next section) outside the docker if possible. Note that the dataset directory should be an absolute path. Within the docker, please run the following command to clone our repo and install custom CUDA extensions:
@@ -100,6 +105,11 @@ python setup.py develop
 ```
 
 You can then create a symbolic link `data` to the `/dataset` directory in the docker.
+
+```bash
+cd /home/bevfusion
+ln -s /dataset data
+```
 
 ### Data Preparation
 
@@ -115,6 +125,7 @@ mmdetection3d
 ├── data
 │   ├── nuscenes
 │   │   ├── maps
+|   |   |   ├── expansion
 │   │   ├── samples
 │   │   ├── sweeps
 │   │   ├── v1.0-test
@@ -125,6 +136,12 @@ mmdetection3d
 │   │   ├── nuscenes_infos_test.pkl
 │   │   ├── nuscenes_dbinfos_train.pkl
 
+```
+
+Preparation command: 
+
+```bash
+python tools/create_data.py nuscenes --root-path ./data/nuscenes --out-dir ./data/nuscenes --extra-tag nuscenes
 ```
 
 ### Evaluation
@@ -144,13 +161,13 @@ torchpack dist-run -np [number of gpus] python tools/test.py [config file path] 
 For example, if you want to evaluate the detection variant of BEVFusion, you can try:
 
 ```bash
-torchpack dist-run -np 8 python tools/test.py configs/nuscenes/det/transfusion/secfpn/camera+lidar/swint_v0p075/convfuser.yaml pretrained/bevfusion-det.pth --eval bbox
+torchpack dist-run -np 1 python tools/test.py configs/nuscenes/det/transfusion/secfpn/camera+lidar/swint_v0p075/convfuser.yaml pretrained/bevfusion-det.pth --eval bbox
 ```
 
 While for the segmentation variant of BEVFusion, this command will be helpful:
 
 ```bash
-torchpack dist-run -np 8 python tools/test.py configs/nuscenes/seg/fusion-bev256d2-lss.yaml pretrained/bevfusion-seg.pth --eval map
+torchpack dist-run -np 1 python tools/test.py configs/nuscenes/seg/fusion-bev256d2-lss.yaml pretrained/bevfusion-seg.pth --eval map
 ```
 
 ### Training
