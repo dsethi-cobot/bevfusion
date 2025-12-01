@@ -1,1 +1,4 @@
-from .feature_decorator import feature_decorator
+try:
+    from . import feature_decorator_ext
+except ImportError:
+    feature_decorator_ext = None
